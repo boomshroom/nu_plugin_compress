@@ -57,7 +57,7 @@ impl PluginCommand for DecompressCommand {
                 let reader = BufReader::new(byte_stream.reader().unwrap());
                 let stream = match self {
                     DecompressCommand::Gzip => ByteStream::read(
-                        flate2::read::GzDecoder::new(reader),
+                        flate2::read::MultiGzDecoder::new(reader),
                         span,
                         engine.signals().clone(),
                         ByteStreamType::Binary,
