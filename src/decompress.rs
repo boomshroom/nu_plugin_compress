@@ -1,10 +1,8 @@
-use std::io::BufReader;
-
 use crate::CompressPlugin;
 use bzip2::bufread::BzDecoder;
 use nu_plugin::PluginCommand;
 use nu_protocol::{
-    ByteStream, ByteStreamType, Category, LabeledError, PipelineData, Signature, Type,
+    ByteStream, ByteStreamType, Category, LabeledError, PipelineData, Signature, Type, Value,
 };
 use xz2::bufread::XzDecoder;
 
@@ -51,38 +49,16 @@ impl PluginCommand for DecompressCommand {
         call: &nu_plugin::EvaluatedCall,
         input: nu_protocol::PipelineData,
     ) -> Result<nu_protocol::PipelineData, nu_protocol::LabeledError> {
-        match input {
+        let (byte_stream, span, pipeline_metadata) = match input {
             PipelineData::ByteStream(byte_stream, pipeline_metadata) => {
                 let span = byte_stream.span();
-                let reader = BufReader::new(byte_stream.reader().unwrap());
-                let stream = match self {
-                    DecompressCommand::Gzip => ByteStream::read(
-                        flate2::read::MultiGzDecoder::new(reader),
-                        span,
-                        engine.signals().clone(),
-                        ByteStreamType::Binary,
-                    ),
-                    DecompressCommand::Zstd => ByteStream::read(
-                        zstd::stream::Decoder::new(reader)
-                            .map_err(|e| LabeledError::new(e.to_string()))?,
-                        span,
-                        engine.signals().clone(),
-                        ByteStreamType::Binary,
-                    ),
-                    DecompressCommand::Xz => ByteStream::read(
-                        XzDecoder::new(reader),
-                        span,
-                        engine.signals().clone(),
-                        ByteStreamType::Binary,
-                    ),
-                    DecompressCommand::Bzip2 => ByteStream::read(
-                        BzDecoder::new(reader),
-                        span,
-                        engine.signals().clone(),
-                        ByteStreamType::Binary,
-                    ),
-                };
-                Ok(PipelineData::ByteStream(stream, pipeline_metadata))
+                (byte_stream, span, pipeline_metadata)
+            }
+            PipelineData::Value(Value::Binary { val, internal_span }, pipeline_metadata) => {
+                let byte_stream =
+                    ByteStream::read_binary(val, internal_span, engine.signals().clone());
+
+                (byte_stream, internal_span, pipeline_metadata)
             }
             v => {
                 return Err(LabeledError::new(format!(
@@ -91,6 +67,39 @@ impl PluginCommand for DecompressCommand {
                 ))
                 .with_label("Expected binary from pipeline", call.head))
             }
-        }
+        };
+
+        let reader = byte_stream.reader().ok_or_else(|| {
+            LabeledError::new("Failed to get reader from byte stream")
+                .with_label("Expected a valid reader", span)
+        })?;
+
+        let stream = match self {
+            DecompressCommand::Gzip => ByteStream::read(
+                flate2::read::MultiGzDecoder::new(reader),
+                span,
+                engine.signals().clone(),
+                ByteStreamType::Binary,
+            ),
+            DecompressCommand::Zstd => ByteStream::read(
+                zstd::stream::Decoder::new(reader).map_err(|e| LabeledError::new(e.to_string()))?,
+                span,
+                engine.signals().clone(),
+                ByteStreamType::Binary,
+            ),
+            DecompressCommand::Xz => ByteStream::read(
+                XzDecoder::new(reader),
+                span,
+                engine.signals().clone(),
+                ByteStreamType::Binary,
+            ),
+            DecompressCommand::Bzip2 => ByteStream::read(
+                BzDecoder::new(reader),
+                span,
+                engine.signals().clone(),
+                ByteStreamType::Binary,
+            ),
+        };
+        Ok(PipelineData::ByteStream(stream, pipeline_metadata))
     }
 }

@@ -2,7 +2,7 @@
 [![docs.rs](https://docs.rs/nu_plugin_compress/badge.svg)](https://docs.rs/nu_plugin_compress)
 
 ## nu_plugin_compress
-A nushell plugin for compression and decompression, supporting zstd, gzip, bzip2, and xz. Require nushell >= `0.101.0`.
+A nushell plugin for compression and decompression, supporting zstd, gzip, bzip2, and xz. Require nushell >= `0.102.0`.
 
 ## Status
 
