@@ -1,6 +1,6 @@
 [package]
 name = "nu_plugin_compress"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 authors = ["yybit <yybit2@gmail.com>"]
 license = "Apache-2.0"
@@ -14,7 +14,7 @@ keywords = ["nu", "plugin", "compression", "gzip", "zstd"]
 [dependencies]
 bzip2 = "0.5.2"
 flate2 = "1.1.0"
-nu-plugin = "0.102.0"
-nu-protocol = { version = "0.102.0", features = ["plugin"] }
+nu-plugin = "0.103.0"
+nu-protocol = { version = "0.103.0", features = ["plugin"] }
 xz2 = "0.1.7"
 zstd = "0.13.3"
